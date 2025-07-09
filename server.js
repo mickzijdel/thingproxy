@@ -85,12 +85,13 @@ function processRequest(req, res) {
         const originHeader = (req.headers["origin"] || "").toLowerCase();
         const refererHeader = (req.headers["referer"] || "").toLowerCase();
 
-        const matchesAllowed = (value) => {
-            if (!value) return false;
-            return value === allowedOrigin || value.startsWith(allowedOrigin + "/");
+        // Consider a header invalid only if it is present *and* does not match the allowed origin.
+        const headerInvalid = (value) => {
+            if (!value) return false;                 // Header absent ⇒ allow
+            return !(value === allowedOrigin || value.startsWith(allowedOrigin + "/"));
         };
 
-        if (!matchesAllowed(originHeader) && !matchesAllowed(refererHeader)) {
+        if (headerInvalid(originHeader) || headerInvalid(refererHeader)) {
             return writeResponse(res, 403, "origin or referer not allowed");
         }
     }
