@@ -91,6 +91,11 @@ function processRequest(req, res) {
             return writeResponse(res, 400, "only http and https are supported");
         }
 
+        // Only proxy requests for .ics files
+        if (!remoteURL.pathname || !remoteURL.pathname.toLowerCase().endsWith(".ics")) {
+            return writeResponse(res, 400, "only .ics files are supported");
+        }
+
         if (publicIP) {
             // Add an X-Forwarded-For header
             if (req.headers["x-forwarded-for"]) {
