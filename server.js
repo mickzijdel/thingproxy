@@ -79,6 +79,22 @@ function isPrivateIP(ip) {
 }
 
 function processRequest(req, res) {
+    // Enforce strict Origin/Referer policy before doing anything else
+    if (config.allowed_origin) {
+        const allowedOrigin = config.allowed_origin.toLowerCase();
+        const originHeader = (req.headers["origin"] || "").toLowerCase();
+        const refererHeader = (req.headers["referer"] || "").toLowerCase();
+
+        const matchesAllowed = (value) => {
+            if (!value) return false;
+            return value === allowedOrigin || value.startsWith(allowedOrigin + "/");
+        };
+
+        if (!matchesAllowed(originHeader) && !matchesAllowed(refererHeader)) {
+            return writeResponse(res, 403, "origin or referer not allowed");
+        }
+    }
+
     addCORSHeaders(req, res);
 
     // Return options pre-flight requests right away

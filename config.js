@@ -13,3 +13,4 @@ exports.blacklist_hostname_regex = /^(10\.|192\.168\.|127\.|0\.|169\.254\.|172\.
 // Matches any subdomain ending in one of these domains.
 exports.allowed_calendar_hostname_regex = /(calendar\.google\.com|googleusercontent\.com|outlook\.live\.com|outlook\.office\.com|office\.com|office365\.com|icloud\.com)$/i;
 exports.cluster_process_count = Number(process.env.CLUSTER_PROCESS_COUNT) || require("os").cpus().length;
+exports.allowed_origin = "https://calign.mickzijdel.com";
