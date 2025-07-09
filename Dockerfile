@@ -27,5 +27,9 @@ ENV NODE_ENV=production \
 # Expose the port that the app listens on
 EXPOSE $PORT
 
+# Simple HTTP health-check
+HEALTHCHECK --interval=5s --timeout=3s --retries=6 \
+  CMD curl -fsS http://localhost:${PORT:-3000}/health || exi
+
 # Default command – start the proxy server
 CMD ["node", "server.js"] 
