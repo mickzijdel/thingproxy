@@ -42,9 +42,6 @@ builder:
 
 # Inject ENV variables into containers (secrets come from .kamal/secrets).
 #
-env:
-  clear:
-    ALLOWED_CLIENT_IP: 87.106.35.121
 
 # Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
 # "bin/kamal app logs -r job" will tail logs from the first server in the job section.
