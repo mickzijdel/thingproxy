@@ -108,6 +108,12 @@ function processRequest(req, res) {
         return writeResponse(res, 405, "method not allowed");
     }
 
+    // Abort early if the client declares a request body that is too large (should be rare for GET/HEAD)
+    var incomingLength = parseInt(req.headers["content-length"] || "0", 10);
+    if (incomingLength && incomingLength > config.max_request_length) {
+        return writeResponse(res, 413, "the content in the request cannot exceed " + config.max_request_length + " characters.");
+    }
+
     var result = config.fetch_regex.exec(req.url);
 
     if (result && result.length == 2 && result[1]) {
