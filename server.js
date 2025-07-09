@@ -135,6 +135,11 @@ function processRequest(req, res) {
             return writeResponse(res, 400, "only http and https are supported");
         }
 
+        // Optionally require HTTPS (recommended)
+        if (config.require_https && remoteURL.protocol !== "https:") {
+            return writeResponse(res, 400, "only https is supported");
+        }
+
         // Only proxy requests for .ics files
         if (!remoteURL.pathname || !remoteURL.pathname.toLowerCase().endsWith(".ics")) {
             return writeResponse(res, 400, "only .ics files are supported");
@@ -205,6 +210,13 @@ function processRequest(req, res) {
 
             // Strengthen client-side security
             proxyRes.headers["X-Content-Type-Options"] = "nosniff";
+
+            // Validate Content-Type is an accepted calendar MIME
+            var ct = (proxyRes.headers["content-type"] || "").toLowerCase();
+            if (ct && !config.allowed_content_type_regex.test(ct)) {
+                proxyRequest.abort();
+                return writeResponse(res, 415, "unsupported content type");
+            }
         });
 
         // Re-validate every redirect target to ensure it stays within policy
