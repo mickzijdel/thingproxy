@@ -1,0 +1,19 @@
+# path/filename: .dockerignore
+# Ignore files & directories that aren't needed in the final Docker image
+
+# Node dependencies installed in-image
+node_modules
+
+# Logs & runtime files
+npm-debug.log
+*.log
+
+# VCS
+.git
+.gitignore
+
+# Environment files
+.env
+
+# OS / editor cruft
+.DS_Store 
