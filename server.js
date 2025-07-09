@@ -96,6 +96,11 @@ function processRequest(req, res) {
             return writeResponse(res, 400, "only .ics files are supported");
         }
 
+        // Allow only specific calendar hostnames (Google, Outlook, iCloud, etc.)
+        if (!config.allowed_calendar_hostname_regex.test(remoteURL.hostname)) {
+            return writeResponse(res, 400, "calendar host not supported");
+        }
+
         if (publicIP) {
             // Add an X-Forwarded-For header
             if (req.headers["x-forwarded-for"]) {
