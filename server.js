@@ -171,8 +171,8 @@ else
 {
     http.createServer(function (req, res) {
 
-        // Process AWS health checks
-        if (req.url === "/health") {
+        // Process health checks (/health and /up endpoints)
+        if (req.url === "/health" || req.url === "/up") {
             return writeResponse(res, 200);
         }
 
