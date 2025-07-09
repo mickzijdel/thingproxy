@@ -155,7 +155,6 @@ function processRequest(req, res) {
             url: remoteURL,
             headers: req.headers,
             method: req.method,
-            strictSSL: false,
             lookup: function(hostname, options, callback) {
                 dns.lookup(hostname, options, function(err, address, family) {
                     if (err) {
@@ -167,7 +166,34 @@ function processRequest(req, res) {
                     callback(null, address, family);
                 });
             },
+            maxRedirects: config.max_redirects,
             timeout: config.proxy_request_timeout_ms,
+            strictSSL: false
+        });
+
+        // Re-validate every redirect target to ensure it stays within policy
+        proxyRequest.on('redirect', function (response, nextOptions) {
+            try {
+                var redirectTarget = url.parse(nextOptions.href || response.headers.location || "");
+
+                // Basic sanity: must have host and https/http
+                if (!redirectTarget.host || (redirectTarget.protocol !== "http:" && redirectTarget.protocol !== "https:")) {
+                    proxyRequest.abort();
+                    return writeResponse(res, 400, "redirect blocked");
+                }
+
+                // Apply the same hostname and path validations as original
+                if (config.blacklist_hostname_regex.test(redirectTarget.hostname) ||
+                    !config.allowed_calendar_hostname_regex.test(redirectTarget.hostname) ||
+                    !redirectTarget.pathname || !redirectTarget.pathname.toLowerCase().endsWith(".ics")) {
+                    proxyRequest.abort();
+                    return writeResponse(res, 400, "redirect blocked");
+                }
+
+            } catch (e) {
+                proxyRequest.abort();
+                return writeResponse(res, 400, "redirect blocked");
+            }
         });
 
         proxyRequest.on('error', function (err) {
