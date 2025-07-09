@@ -178,6 +178,14 @@ else
 
         var clientIP = getClientAddress(req);
 
+        // Normalize IPv4-mapped IPv6 addresses (e.g., "::ffff:87.106.35.121")
+        var normalizedIP = clientIP && clientIP.startsWith("::ffff:") ? clientIP.substring(7) : clientIP;
+
+        // Reject requests not coming from the whitelisted IP address.
+        if (normalizedIP !== config.allowed_client_ip) {
+            return writeResponse(res, 403, "forbidden");
+        }
+
         req.clientIP = clientIP;
 
         // Log our request
