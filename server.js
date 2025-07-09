@@ -171,6 +171,25 @@ function processRequest(req, res) {
             strictSSL: false
         });
 
+        // Filter response headers and enforce size limit before streaming to client
+        proxyRequest.on('response', function(proxyRes) {
+
+            // Abort early if declared Content-Length exceeds maximum
+            var declaredSize = parseInt(proxyRes.headers["content-length"] || "0", 10);
+            if (declaredSize && declaredSize > config.max_request_length) {
+                proxyRequest.abort();
+                return writeResponse(res, 413, "the content in the response cannot exceed " + config.max_request_length + " characters.");
+            }
+
+            // Remove sensitive or unnecessary headers
+            delete proxyRes.headers["set-cookie"];
+            delete proxyRes.headers["set-cookie2"];
+            delete proxyRes.headers["www-authenticate"];
+
+            // Strengthen client-side security
+            proxyRes.headers["X-Content-Type-Options"] = "nosniff";
+        });
+
         // Re-validate every redirect target to ensure it stays within policy
         proxyRequest.on('redirect', function (response, nextOptions) {
             try {
