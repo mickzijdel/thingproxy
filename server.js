@@ -1,5 +1,7 @@
 var http = require('http');
 var https = require('https');
+var dns = require('dns');
+var net = require('net');
 var config = require("./config");
 var url = require("url");
 var request = require("request");
@@ -56,12 +58,37 @@ function getClientAddress(req) {
         || req.connection.remoteAddress;
 }
 
+function isPrivateIP(ip) {
+    if (!ip) return true;
+    if (net.isIP(ip) === 4) {
+        var p = ip.split('.').map(Number);
+        if (p[0] === 10) return true;
+        if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return true;
+        if (p[0] === 192 && p[1] === 168) return true;
+        if (p[0] === 127) return true;
+        if (p[0] === 169 && p[1] === 254) return true;
+        if (p[0] === 100 && p[1] >= 64 && p[1] <= 127) return true;
+        if (p[0] === 0) return true;
+    } else if (net.isIP(ip) === 6) {
+        var lower = ip.toLowerCase();
+        if (lower === '::1') return true; // loopback
+        if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // unique local
+        if (lower.startsWith('fe80')) return true; // link-local
+    }
+    return false;
+}
+
 function processRequest(req, res) {
     addCORSHeaders(req, res);
 
     // Return options pre-flight requests right away
     if (req.method.toUpperCase() === "OPTIONS") {
         return writeResponse(res, 204);
+    }
+
+    // Only allow safe read-only methods
+    if (req.method !== "GET" && req.method !== "HEAD") {
+        return writeResponse(res, 405, "method not allowed");
     }
 
     var result = config.fetch_regex.exec(req.url);
@@ -120,12 +147,27 @@ function processRequest(req, res) {
         delete req.headers["origin"];
         delete req.headers["referer"];
 
+        // Strip cookies or auth headers that could leak user context
+        delete req.headers["cookie"];
+        delete req.headers["authorization"];
+
         var proxyRequest = request({
             url: remoteURL,
             headers: req.headers,
             method: req.method,
+            strictSSL: false,
+            lookup: function(hostname, options, callback) {
+                dns.lookup(hostname, options, function(err, address, family) {
+                    if (err) {
+                        return callback(err);
+                    }
+                    if (isPrivateIP(address)) {
+                        return callback(new Error("Address not allowed"));
+                    }
+                    callback(null, address, family);
+                });
+            },
             timeout: config.proxy_request_timeout_ms,
-            strictSSL: false
         });
 
         proxyRequest.on('error', function (err) {
